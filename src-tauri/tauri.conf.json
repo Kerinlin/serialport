@@ -1,6 +1,6 @@
 {
   "package": {
-    "productName": "vitauri",
+    "productName": "calculator",
     "version": "1.6.0"
   },
   "build": {
