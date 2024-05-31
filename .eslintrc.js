@@ -29,5 +29,7 @@ module.exports = {
     "vue/multi-word-component-names": 0,
     "no-unused-vars": 1,
     "no-constant-condition": 1,
+    "no-useless-escape": 1,
+    "vue/no-unused-vars": 1,
   },
 };

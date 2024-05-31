@@ -1,0 +1,14 @@
+$vxe-table-header-background-color: transparent;
+$vxe-table-body-background-color: transparent;
+:root {
+  // --vxe-table-column-padding-default: 4px 0 !important;
+}
+// $vxe-table-border-color: var(--regularColor);
+// $vxe-font-color: #fff;
+
+// $vxe-table-row-hover-background-color: var(--activeStatusColorHalf);
+// $vxe-table-row-striped-background-color: var(--tablesSecondaryColor);
+// $vxe-table-row-hover-striped-background-color: var(--activeStatusColorHalf);
+
+
+@import 'vxe-table/styles/index.scss';

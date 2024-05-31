@@ -1,6 +1,6 @@
 {
   "package": {
-    "productName": "tauri-template",
+    "productName": "太阳能终端配置软件",
     "version": "1.0.0"
   },
   "build": {
@@ -30,7 +30,10 @@
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
-        "timestampUrl": ""
+        "timestampUrl": "",
+        "wix": {
+          "language": "zh-CN"
+        }
       }
     },
     "updater": {
@@ -38,6 +41,9 @@
     },
     "allowlist": {
       "all": true,
+      "shell": {
+        "open": true
+      },
       "window": {
         "all": false,
         "close": true,
@@ -52,15 +58,17 @@
     },
     "windows": [
       {
-        "width": 666,
-        "height": 370,
+        "label": "main",
+        "width": 1600,
+        "height": 900,
         "resizable": true,
         "fullscreen": false,
-        "decorations": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src blob: data: filesystem: ws: http: https: 'unsafe-eval' 'unsafe-inline'"
     }
   }
 }
