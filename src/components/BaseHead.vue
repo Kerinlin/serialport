@@ -15,6 +15,9 @@
       <n-icon size="24" @click="onMenuClick('min')">
         <RemoveCircleOutline />
       </n-icon>
+      <!-- <n-icon size="24" class="ml-8" @click="onMenuClick('max')">
+        <Scan />
+      </n-icon> -->
       <n-icon size="24" class="ml-8" @click="onMenuClick('close')">
         <CloseCircleOutline />
       </n-icon>
@@ -31,6 +34,7 @@ import {
   ChevronDownOutline,
   CloseCircleOutline,
   RemoveCircleOutline,
+  Scan,
 } from "@vicons/ionicons5";
 import { invoke } from "@tauri-apps/api/tauri";
 let options = ref([

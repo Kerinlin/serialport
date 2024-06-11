@@ -60,18 +60,28 @@
             </n-button>
           </div>
           <div class="store-wrapper space-between">
-            <div class="option-item"></div>
+            <div class="option-item flex-start">
+              <div class="title mr-8">查询间隔</div>
+              <n-input
+                v-model:value="formOptions.interval"
+                :disabled="formOptions.isAutoCheck"
+                style="width: 200px"
+                type="text"
+                placeholder=""
+              />
+              <n-checkbox
+                v-model:checked="formOptions.isAutoCheck"
+                class="ml-8"
+                :on-update:checked="handleAutoCheckData"
+              >
+                自动查询
+              </n-checkbox>
+            </div>
             <div class="right-item flex-start">
               <n-checkbox v-model:checked="formOptions.isAutoStore">
-                自动入库
+                自动导入Excel
               </n-checkbox>
-              <n-button
-                style="margin-left: 16px"
-                color="#383F3E"
-                @click="handleStore"
-              >
-                入库
-              </n-button>
+              <!-- <n-button style="margin-left: 16px" color="#383F3E" @click="handleStore"> 入库 </n-button> -->
               <n-button
                 style="margin-left: 16px"
                 color="#383F3E"
@@ -173,14 +183,54 @@
         </div>
       </Card>
 
-      <Card title="其他数据" class="mt-16">
+      <Card title="其他数据" class="mt-16 info-wrapper">
         <div class="data-wrapper space-between">
           <div class="data-item flex-start">
-            <div class="title">频度</div>
+            <div class="title">设备SN</div>
+            <div v-if="terminalInfo?.sn" class="value">
+              {{ terminalInfo?.sn }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">设备ICCID</div>
+            <div v-if="terminalInfo?.iccid" class="value">
+              {{ terminalInfo?.iccid }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">工作模式</div>
+            <div v-if="terminalInfo?.workMode" class="value">
+              {{ mapMode[terminalInfo.workMode] }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">正常工作模式上报频度</div>
             <div v-if="terminalInfo?.freq" class="value">
-              {{ terminalInfo?.freq }},{{ terminalInfo?.sosFreq }},{{
-                terminalInfo?.powerFreq
-              }},{{ terminalInfo?.stopFreq }}
+              {{ terminalInfo?.freq }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">报警模式上报频度</div>
+            <div v-if="terminalInfo?.sosFreq" class="value">
+              {{ terminalInfo?.sosFreq }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">低电量报警模式上报频度</div>
+            <div v-if="terminalInfo?.powerFreq" class="value">
+              {{ terminalInfo?.powerFreq }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">港口停泊状态上报频度</div>
+            <div v-if="terminalInfo?.stopFreq" class="value">
+              {{ terminalInfo?.stopFreq }}
             </div>
           </div>
 
@@ -188,6 +238,13 @@
             <div class="title">IP端口</div>
             <div v-if="terminalInfo?.ip" class="value">
               {{ terminalInfo?.ip }},{{ terminalInfo?.port }}
+            </div>
+          </div>
+
+          <div class="data-item flex-start">
+            <div class="title">网络强度</div>
+            <div v-if="terminalInfo?.networkStrength" class="value">
+              {{ terminalInfo?.networkStrength }}
             </div>
           </div>
 
@@ -235,10 +292,11 @@
             ref="xTable"
             :data="recordList"
             align="center"
-            :row-config="{ isHover: false }"
+            :row-config="{ isHover: true }"
             :column-config="{ resizable: false }"
             max-height="100%"
             :scroll-y="{ enabled: true }"
+            class="table-container"
           >
             <vxe-column title="序号">
               <template #default="{ rowIndex }"> {{ rowIndex + 1 }} </template>
@@ -248,9 +306,18 @@
             <vxe-column>
               <template #default="{ row, rowIndex }">
                 <div class="cursor-pointer">
-                  <n-icon size="32" @click="deleteRecord(rowIndex)">
-                    <CloseSharp />
-                  </n-icon>
+                  <n-popconfirm
+                    positive-text="确认"
+                    negative-text="取消"
+                    @positive-click="confirmDel(rowIndex)"
+                  >
+                    <template #trigger>
+                      <n-icon size="32">
+                        <CloseSharp />
+                      </n-icon>
+                    </template>
+                    是否删除此纪录
+                  </n-popconfirm>
                 </div>
               </template>
             </vxe-column>
@@ -276,6 +343,7 @@ import {
   NInput,
   NCheckbox,
   NIcon,
+  NPopconfirm,
 } from "naive-ui";
 import { CloseSharp } from "@vicons/ionicons5";
 import Card from "@/components/Card.vue";
@@ -303,16 +371,27 @@ let serialOptions = ref({
   bufferSize: 100000,
 });
 let recordList = ref([]);
+let timer = ref(null);
+let mapMode = {
+  1: "正常模式",
+  2: "按键报警模式",
+  3: "拆卸报警",
+  4: "侧翻报警",
+  5: "低电量报警",
+  6: "落水报警",
+};
 let formOptions = ref({
   sn: "",
   iccid: "",
-  isAutoStore: false,
+  isAutoStore: true,
   freq: "",
   sosFreq: "",
   powerFreq: "",
   stopFreq: "",
   ip: "",
   port: "",
+  interval: "1000",
+  isAutoCheck: false,
 });
 
 let baudRateOptions = ref([
@@ -333,23 +412,27 @@ let baudRateOptions = ref([
 watch(
   () => terminalInfo.value?.iccid,
   (newVal, oldVal) => {
-    console.log("iccid变化", newVal, oldVal);
-    formOptions.value.iccid = newVal;
+    console.log("iccid值:", newVal, oldVal);
+    formOptions.value.iccid = "";
+    setTimeout(() => {
+      formOptions.value.iccid = newVal;
+    }, 100);
   },
   {
     deep: true,
   }
 );
 
-watch(
-  () => terminalInfo.value?.sn,
-  (newVal, oldVal) => {
-    formOptions.value.sn = newVal;
-  },
-  {
-    deep: true,
-  }
-);
+// watch(
+//   () => terminalInfo.value?.sn,
+//   (newVal, oldVal) => {
+//     console.log("监听sn", terminalInfo.value?.sn, newVal, oldVal);
+//     formOptions.value.sn = newVal;
+//   },
+//   {
+//     deep: true,
+//   }
+// );
 
 watch(
   () => formOptions.value?.sn,
@@ -362,6 +445,23 @@ const focusInput = () => {
   snInput.value?.focus();
 };
 
+const handleAutoCheckData = (val) => {
+  console.log("handleAutoCheckData ~ val:", val);
+  if (!isOpen.value) {
+    message.error("请先连接串口");
+    return false;
+  }
+  formOptions.value.isAutoCheck = val;
+  if (val) {
+    timer.value = setInterval(() => {
+      checkTerminalInfo();
+    }, formOptions.value.interval);
+  } else {
+    clearInterval(timer.value);
+    timer.value = null;
+  }
+};
+
 const handleConnect = async () => {
   await connectPort(serialOptions.value);
   focusInput();
@@ -369,9 +469,40 @@ const handleConnect = async () => {
 
 const handleDisconnect = async () => {
   await disconnectPort();
+  formOptions.value.isAutoCheck = false;
+  clearInterval(timer.value);
+  timer.value = null;
 };
 
-const deleteRecord = (index) => {
+const scrollToBottomSmoothly = () => {
+  const tableEl = xTable.value.$el; // 获取 vxe-table 的根元素
+  const scrollContainer = tableEl.querySelector(".vxe-table--body-wrapper"); // 获取滚动容器
+  const containerHeight = scrollContainer.clientHeight; // 获取滚动容器的高度
+  const scrollHeight = scrollContainer.scrollHeight + 52; // 获取滚动内容的高度
+  scrollToTop(scrollHeight - containerHeight);
+};
+
+// 封装一个回到底部或者顶部的函数
+const scrollToTop = (position) => {
+  const tableEl = xTable.value.$el; // 获取 vxe-table 的根元素
+  const scrollContainer = tableEl.querySelector(".vxe-table--body-wrapper"); // 获取滚动容器
+
+  // 获取当前滚动的距离
+  let scrollTopDistance = scrollContainer.scrollTop;
+  function smoothScroll() {
+    const distance = position - scrollTopDistance; // 计算滚动的距离
+    scrollTopDistance = scrollTopDistance + distance / 5; // 平滑滚动效果
+    if (Math.abs(distance) < 1) {
+      scrollContainer.scrollTo({ top: position, behavior: "smooth" });
+    } else {
+      scrollContainer.scrollTo({ top: scrollTopDistance });
+      requestAnimationFrame(smoothScroll);
+    }
+  }
+  smoothScroll();
+};
+
+const confirmDel = (index) => {
   console.log("deleteRecord ~ index:", index);
   recordList.value.splice(index, 1);
 };
@@ -404,9 +535,11 @@ const handleStore = async () => {
       updateTime: formatted.value,
     };
     recordList.value.push(recordItem);
+    scrollToBottomSmoothly();
     let logData = JSON.stringify(recordItem);
     logMessage(`${formatted.value} 入库 ${logData}`);
     focusInput();
+    backupExcel();
   }
 };
 
@@ -427,6 +560,17 @@ const exportExcel = async () => {
   focusInput();
 };
 
+const backupExcel = async () => {
+  const data = prepareExcelData(recordList.value);
+  let formatted = useDateFormat(useNow(), "YYYY-MM-DD");
+  const homeDir = await path.homeDir();
+  const fullPath = `${homeDir}/PN07入库记录_${formatted.value}_备份.xlsx`;
+  await invoke("save_excel_file", {
+    path: fullPath,
+    data: Array.from(new Uint8Array(data)),
+  });
+};
+
 const handleSetSn = async () => {
   await setSn(formOptions.value.sn);
 };
@@ -437,18 +581,20 @@ const handleCheckTerminalData = async () => {
 
 const handleInput = useDebounceFn(async (newVal, oldVal) => {
   if (newVal?.length > 11) {
-    console.log("handleInput ~ newVal:", newVal);
     formOptions.value.sn = newVal?.slice(-11);
+    formOptions.value.iccid = "";
   }
   if (newVal.length == 11) {
+    console.log("读取到数据开始查询-------", newVal);
     await setSn(formOptions.value.sn);
-    await sleep(1000);
+    await sleep(500);
     await checkTerminalInfo();
+    await sleep(formOptions.value.interval);
     if (formOptions.value.isAutoStore) {
       handleStore();
     }
   }
-}, 50);
+}, 10);
 
 onMounted(() => {
   navigator.serial.addEventListener("disconnect", (e) => {
@@ -486,7 +632,7 @@ onMounted(() => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     .option-item {
       .title {
         width: 54px;
@@ -503,15 +649,18 @@ onMounted(() => {
         }
       }
     }
-    .data-wrapper {
-      width: 100%;
-      flex-wrap: wrap;
-      .data-item {
-        width: 50%;
-        margin-bottom: 8px;
-        .title {
-          white-space: nowrap;
-          margin-right: 16px;
+    .info-wrapper {
+      flex: 1;
+      .data-wrapper {
+        width: 100%;
+        flex-wrap: wrap;
+        .data-item {
+          width: 50%;
+          margin-bottom: 16px;
+          .title {
+            white-space: nowrap;
+            margin-right: 16px;
+          }
         }
       }
     }

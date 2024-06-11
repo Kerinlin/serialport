@@ -70,13 +70,16 @@ export const useSerial = () => {
         return false;
       }
       await serialPortManager.write(data);
-      message.success("指令已发送");
+      // message.success("指令已发送");
     } catch (error) {
       message.error("指令写入报错");
     }
   };
 
   const checkTerminalInfo = async () => {
+    console.log("读取到数据开始查询-------发送查询数据");
+    console.log("查询终端信息");
+    // resetData();
     let command = "$CCZDC,0*hh\r\n";
     await writeData(command);
   };
@@ -121,6 +124,8 @@ export const useSerial = () => {
       bootVersion: "",
       thimble: "",
       magneticAttraction: "",
+      workMode: "",
+      networkStrength: "",
     };
   };
 
@@ -130,20 +135,22 @@ export const useSerial = () => {
       resetData();
     }
     const magneticAttraction = splitLastCommand(command);
+    terminalInfo.value.workMode = command[1];
     terminalInfo.value.freq = command[2];
     terminalInfo.value.sosFreq = command[3];
     terminalInfo.value.powerFreq = command[4];
-    terminalInfo.value.stopFreq = command[16];
     terminalInfo.value.ip = command[5];
     terminalInfo.value.port = command[6];
+    terminalInfo.value.networkStrength = command[7];
     terminalInfo.value.batteryVoltage = command[8];
     terminalInfo.value.chargeVoltage = command[9];
     terminalInfo.value.satellitesNum = command[10];
     terminalInfo.value.handwareVersion = command[11];
     terminalInfo.value.softwareVersion = command[12];
     terminalInfo.value.bootVersion = command[13];
-    terminalInfo.value.iccid = command[15];
     terminalInfo.value.sn = command[14];
+    terminalInfo.value.iccid = command[15];
+    terminalInfo.value.stopFreq = command[16];
     terminalInfo.value.thimble = command[19];
     terminalInfo.value.magneticAttraction = magneticAttraction[0];
   };

@@ -1,9 +1,9 @@
 <template>
   <div class="card-wrapper">
-    <div class="card-head space-between">
+    <!-- <div class="card-head space-between">
       <div class="title">{{ title }}</div>
       <slot name="action"></slot>
-    </div>
+    </div> -->
     <div class="card-content">
       <slot></slot>
     </div>
